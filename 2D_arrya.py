@@ -34,10 +34,10 @@ def init_hardware():
     return device
 
 
-def load_display(light_list, device):
+def load_display(full_display_list, device):
     with canvas(device) as draw:
-        for y in range(len(light_list)):
-            display_list = light_list[y]
+        for y in range(len(full_display_list)):
+            display_list = full_display_list[y]
             for x in range(len(display_list)):
                 if(display_list[x] == True):
                     draw.point((x, y), fill="white")
@@ -52,15 +52,24 @@ def toggle_lights(light_list, y_coordinaat, x_coordinaat):
     for x in range(len(y_change)):
         if(y_change[x] != -1 and y_change[x] != 8):
             change_list = light_list[y_change[x]]
-            for y in range(len(x_change)):
-                if (x_change[x] != -1 and x_change[x] != 8):
-                    if(change_list[x] == True):
-                        change_list[x] = False
-                    else:
-                        change_list[x] = True
+            if (x_change[x] != -1 and x_change[x] != 8):
+                if(change_list[x_change[x]] == True):
+                    change_list[x_change[x]] = False
+                else:
+                        change_list[x_change[x]] = True
             light_list[y_change[x]] = change_list
 
     return light_list
+
+
+def flits(flits_list, y_coordinaat, x_coordinaat, device):
+    change_flist_list = flits_list[y_coordinaat]
+    change_flist_list[x_coordinaat] = not change_flist_list[x_coordinaat]
+    flits_list[y_coordinaat] = change_flist_list
+    load_display(flits_list, device)
+
+# def set_location():
+    
 
 
 
@@ -87,34 +96,67 @@ def create_random_list():
 def main():
     x_coordinaat = 0
     y_coordinaat = 0
+    flits_time = 0.4
+    
     light_list = create_random_list()
+    flits_original_state = light_list[x_coordinaat][y_coordinaat]
     device = init_hardware()
     load_display(light_list, device)
-    while True:
-        if GPIO.input(19) == GPIO.HIGH:#left
-            x_coordinaat -= 1
-            if(x_coordinaat == -1):
-                x_coordinaat = 7
-            time.sleep(0.2)
-        if GPIO.input(26) == GPIO.HIGH:#right
-            x_coordinaat += 1
-            if(x_coordinaat == 8):
-                x_coordinaat = 0
-            time.sleep(0.2)
-        if GPIO.input(16) == GPIO.HIGH:#select
-            light_list = toggle_lights(light_list, y_coordinaat, x_coordinaat)
-            load_display(light_list, device)
-            time.sleep(0.2)
-        if GPIO.input(20) == GPIO.HIGH:#up
-            y_coordinaat -= 1
-            if(y_coordinaat == -1):
-                y_coordinaat = 7
-            time.sleep(0.2)
-        if GPIO.input(21) == GPIO.HIGH:#down
-            y_coordinaat += 1
-            if(y_coordinaat == 8):
-                y_coordinaat = 0
-            time.sleep(0.2)
+    
+    next_now = time.time() + flits_time
+    saved_value = light_list[y_coordinaat][x_coordinaat]
+    try:
+        while True:
+            now = time.time()
+            if now >= next_now:
+                next_now = time.time() + flits_time
+                flits(light_list, y_coordinaat, x_coordinaat, device)
+                
+            if GPIO.input(19) == GPIO.HIGH:#left
+                light_list[y_coordinaat][x_coordinaat] = saved_value
+                x_coordinaat -= 1
+                if(x_coordinaat == -1):
+                    x_coordinaat = 7
+                load_display(light_list, device)
+                saved_value = light_list[y_coordinaat][x_coordinaat]
+                time.sleep(0.2)
+                
+            if GPIO.input(26) == GPIO.HIGH:#right
+                light_list[y_coordinaat][x_coordinaat] = saved_value
+                x_coordinaat += 1
+                if(x_coordinaat == 8):
+                    x_coordinaat = 0
+                load_display(light_list, device)
+                saved_value = light_list[y_coordinaat][x_coordinaat]
+                time.sleep(0.2)
+                
+            if GPIO.input(16) == GPIO.HIGH:#select
+                light_list[y_coordinaat][x_coordinaat] = saved_value
+                light_list = toggle_lights(light_list, y_coordinaat, x_coordinaat)
+                load_display(light_list, device)
+                saved_value = light_list[y_coordinaat][x_coordinaat]
+                time.sleep(0.2)
+                
+            if GPIO.input(20) == GPIO.HIGH:#up
+                light_list[y_coordinaat][x_coordinaat] = saved_value
+                y_coordinaat -= 1
+                if(y_coordinaat == -1):
+                    y_coordinaat = 7
+                load_display(light_list, device)
+                saved_value = light_list[y_coordinaat][x_coordinaat]
+                time.sleep(0.2)
+                
+            if GPIO.input(21) == GPIO.HIGH:#down
+                light_list[y_coordinaat][x_coordinaat] = saved_value
+                y_coordinaat += 1
+                if(y_coordinaat == 8):
+                    y_coordinaat = 0
+                load_display(light_list, device)
+                saved_value = light_list[y_coordinaat][x_coordinaat]
+                time.sleep(0.2)
+                
+    except KeyboardInterrupt:
+        device.clear()
         
 
 
