@@ -46,15 +46,15 @@ def load_display(light_list, device):
 
 
 def toggle_lights(light_list, y_coordinaat, x_coordinaat):
-    y_change = [y_coordinaat - 1, y_coordinaat, y_coordinaat + 1]
-    x_change = [x_coordinaat - 1, x_coordinaat, x_coordinaat + 1]
+    y_change = [y_coordinaat + 1, y_coordinaat, y_coordinaat, y_coordinaat, y_coordinaat - 1]
+    x_change = [x_coordinaat, x_coordinaat - 1, x_coordinaat, x_coordinaat + 1, x_coordinaat]
 
     for x in range(len(y_change)):
         if(y_change[x] != -1 and y_change[x] != 8):
             change_list = light_list[y_change[x]]
             for y in range(len(x_change)):
                 if (x_change[x] != -1 and x_change[x] != 8):
-                    if(change_list[x]):
+                    if(change_list[x] == True):
                         change_list[x] = False
                     else:
                         change_list[x] = True
