@@ -83,7 +83,16 @@ def create_random_list():
                   [False, False, False, False, False, False, False, False],
                   [False, False, False, False, False, False, False, False],
                   [False, False, False, False, False, False, False, False]]
-
+    
+    test_list = [[False, False, True, True, True, True, True, True],
+                  [False, True, True, True, True, True, True, True],
+                  [True, True, True, True, True, True, True, True],
+                  [True, True, True, True, True, True, True, True],
+                  [True, True, True, True, True, True, True, True],
+                  [True, True, True, True, True, True, True, True],
+                  [True, True, True, True, True, True, True, True],
+                  [True, True, True, True, True, True, True, True]]
+    
     for x in range(len(light_list)):
         change_list = light_list[x]
         change_list[random.randint(0, 7)] = True
@@ -91,12 +100,23 @@ def create_random_list():
         change_list[random.randint(0, 7)] = True
         change_list[random.randint(0, 7)] = True
         light_list[x] = change_list
-    return light_list
+    return test_list
 
 
 def main():
     Display = tm1637.TM1637(23,24)
     tm = tm1637.TM1637(clk=23, dio=24)
+    control_pins = [4,17,27,22]
+
+    for pin in control_pins:
+        GPIO.setup(pin, GPIO.OUT)
+        GPIO.output(pin, 0)
+    halfstep_seq = [
+        [1,0,0,0],
+        [0,1,0,0],
+        [0,0,1,0],
+        [0,0,0,1]
+    ]
     # tm.scroll("TEAM 12 IS DE BESTE", delay=250)
     minutes = 1
     seconds = 0
@@ -119,8 +139,7 @@ def main():
             # print(int(time.time()))
             now = time.time()
             timer = int(time.time())
-            if old_timer + 1 == timer:
-                old_timer = int(time.time())
+            if timer > old_timer:
                 time_list.append(time.time()-old_time)
                 old_time = time.time()
                 # print(f'Variable timer: {timer}, Type: {type(timer)}')
@@ -178,12 +197,25 @@ def main():
                 load_display(light_list, device)
                 saved_value = light_list[y_coordinaat][x_coordinaat]
                 time.sleep(0.2)
-                
+            
+            if (fout_controle(light_list)):
+                break
+            old_timer = int(time.time())
+            
     except KeyboardInterrupt:
         device.clear()
-        tm.scroll("")
+        tm.show("    ")
         print(time_list)
         
-
+    tm.show("    ")
+    for i in range(256):
+        for halfstep in range(4):
+            for pin in range(4):
+                GPIO.output(control_pins[pin], halfstep_seq[halfstep][pin])
+            time.sleep(0.005)
+    for i in range(5):
+        tm.scroll("YOU WON", delay=250)
+        
+GPIO.cleanup()
 
 main()
