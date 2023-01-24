@@ -6,6 +6,7 @@ from luma.core.legacy.font import proportional, LCD_FONT
 from luma.led_matrix.device import max7219
 import RPi.GPIO as GPIO # Import Raspberry Pi GPIO library
 import time
+import tm1637
 
 def fout_controle(light_list):
     check_total = 0;
@@ -22,7 +23,7 @@ def fout_controle(light_list):
 
 def init_hardware():
     GPIO.setwarnings(False)  # Ignore warning for now
-    GPIO.setmode(GPIO.BCM)  # Use physical pin numbering
+    # GPIO.setmode(GPIO.BCM)  # Use physical pin numbering
     GPIO.setup(19, GPIO.IN,
                pull_up_down=GPIO.PUD_DOWN)  # Set pin 10 to be an input pin and set initial value to be pulled low (off)
     GPIO.setup(26, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
@@ -94,6 +95,12 @@ def create_random_list():
 
 
 def main():
+    Display = tm1637.TM1637(23,24)
+    tm = tm1637.TM1637(clk=23, dio=24)
+    # tm.scroll("TEAM 12 IS DE BESTE", delay=250)
+    minutes = 1
+    seconds = 0
+    tm.numbers(minutes,seconds)
     x_coordinaat = 0
     y_coordinaat = 0
     flits_time = 0.4
@@ -102,16 +109,33 @@ def main():
     flits_original_state = light_list[x_coordinaat][y_coordinaat]
     device = init_hardware()
     load_display(light_list, device)
-    
+    time_list = []
     next_now = time.time() + flits_time
+    old_time = time.time()
+    old_timer = int(time.time())
     saved_value = light_list[y_coordinaat][x_coordinaat]
     try:
         while True:
+            # print(int(time.time()))
             now = time.time()
+            timer = int(time.time())
+            if old_timer + 1 == timer:
+                old_timer = int(time.time())
+                time_list.append(time.time()-old_time)
+                old_time = time.time()
+                # print(f'Variable timer: {timer}, Type: {type(timer)}')
+                # print(f'Variable old_timer: {old_timer}, Type: {type(old_timer)}')
+                seconds -= 1
+                if seconds < 0:
+                    seconds = 59
+                    minutes -= 1
+                if minutes == 0 and seconds == 0:
+                    print("0")
+                tm.numbers(minutes,seconds)
+                
             if now >= next_now:
                 next_now = time.time() + flits_time
                 flits(light_list, y_coordinaat, x_coordinaat, device)
-                
             if GPIO.input(19) == GPIO.HIGH:#left
                 light_list[y_coordinaat][x_coordinaat] = saved_value
                 x_coordinaat -= 1
@@ -157,6 +181,8 @@ def main():
                 
     except KeyboardInterrupt:
         device.clear()
+        tm.scroll("")
+        print(time_list)
         
 
 
