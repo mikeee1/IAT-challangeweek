@@ -32,6 +32,11 @@ def init_hardware():
     GPIO.setup(21, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
     serial = spi(port=0, device=0, gpio=noop())
     device = max7219(serial, width=8, height=8)
+    control_pins = [4,17,27,22]
+
+    for pin in control_pins:
+        GPIO.setup(pin, GPIO.OUT)
+        GPIO.output(pin, 0)
     return device
 
 
@@ -104,20 +109,22 @@ def create_random_list():
 
 
 def main():
+    pressed_button = False
+    BUTTON_TIMER = 0.9
     Display = tm1637.TM1637(23,24)
     tm = tm1637.TM1637(clk=23, dio=24)
     control_pins = [4,17,27,22]
-
-    for pin in control_pins:
-        GPIO.setup(pin, GPIO.OUT)
-        GPIO.output(pin, 0)
     halfstep_seq = [
         [1,0,0,0],
         [0,1,0,0],
         [0,0,1,0],
-        [0,0,0,1]
-    ]
-    # tm.scroll("TEAM 12 IS DE BESTE", delay=250)
+        [0,0,0,1]]
+    backwards_seq = [
+        [0,0,0,1],
+        [0,0,1,0],
+        [0,1,0,0],
+        [1,0,0,0]]
+    
     minutes = 1
     seconds = 0
     tm.numbers(minutes,seconds)
@@ -133,13 +140,23 @@ def main():
     next_now = time.time() + flits_time
     old_time = time.time()
     old_timer = int(time.time())
+    button_last_pressed = time.time()
     saved_value = light_list[y_coordinaat][x_coordinaat]
     try:
+        while True:
+            if GPIO.input(16) == GPIO.HIGH:#select
+                time.sleep(0.2)
+                break
+        for i in range(178):
+            for halfstep in range(4):
+                for pin in range(4):
+                    GPIO.output(control_pins[pin], backwards_seq[halfstep][pin])
+                time.sleep(0.005)
         while True:
             # print(int(time.time()))
             now = time.time()
             timer = int(time.time())
-            if timer > old_timer:
+            if timer + 1 == old_timer:
                 time_list.append(time.time()-old_time)
                 old_time = time.time()
                 # print(f'Variable timer: {timer}, Type: {type(timer)}')
@@ -151,52 +168,68 @@ def main():
                 if minutes == 0 and seconds == 0:
                     print("0")
                 tm.numbers(minutes,seconds)
-                
+            
+            # print(f'Variable button_last_pressed + BUTTON_TIMER: {button_last_pressed + BUTTON_TIMER}, Type: {type(button_last_pressed + BUTTON_TIMER)}')
+            # print(f'Variable time.time(): {time.time()}, Type: {type(time.time())}')
+            if button_last_pressed + BUTTON_TIMER >= time.time():
+                print("reset")
+                pressed_button = False
+
             if now >= next_now:
                 next_now = time.time() + flits_time
                 flits(light_list, y_coordinaat, x_coordinaat, device)
-            if GPIO.input(19) == GPIO.HIGH:#left
+            if GPIO.input(19) == GPIO.HIGH and pressed_button is False:#left
+                pressed_button = True
+                button_last_pressed = time.time()
                 light_list[y_coordinaat][x_coordinaat] = saved_value
                 x_coordinaat -= 1
                 if(x_coordinaat == -1):
                     x_coordinaat = 7
                 load_display(light_list, device)
                 saved_value = light_list[y_coordinaat][x_coordinaat]
-                time.sleep(0.2)
                 
-            if GPIO.input(26) == GPIO.HIGH:#right
+            if GPIO.input(26) == GPIO.HIGH and pressed_button is False:#right
+                print("test")
+                pressed_button = True
+                button_last_pressed = time.time()
                 light_list[y_coordinaat][x_coordinaat] = saved_value
                 x_coordinaat += 1
                 if(x_coordinaat == 8):
                     x_coordinaat = 0
                 load_display(light_list, device)
                 saved_value = light_list[y_coordinaat][x_coordinaat]
-                time.sleep(0.2)
+                # time.sleep(0.2)
                 
-            if GPIO.input(16) == GPIO.HIGH:#select
+            if GPIO.input(16) == GPIO.HIGH and pressed_button is False:#select
+                pressed_button = True
+                button_last_pressed = time.time()
                 light_list[y_coordinaat][x_coordinaat] = saved_value
                 light_list = toggle_lights(light_list, y_coordinaat, x_coordinaat)
                 load_display(light_list, device)
                 saved_value = light_list[y_coordinaat][x_coordinaat]
-                time.sleep(0.2)
+                # time.sleep(0.2)
                 
-            if GPIO.input(20) == GPIO.HIGH:#up
+            if GPIO.input(20) == GPIO.HIGH and pressed_button is False:#up
+                pressed_button = True
+                button_last_pressed = time.time()
                 light_list[y_coordinaat][x_coordinaat] = saved_value
                 y_coordinaat -= 1
                 if(y_coordinaat == -1):
                     y_coordinaat = 7
                 load_display(light_list, device)
                 saved_value = light_list[y_coordinaat][x_coordinaat]
-                time.sleep(0.2)
+                # time.sleep(0.2)
                 
-            if GPIO.input(21) == GPIO.HIGH:#down
+            if GPIO.input(21) == GPIO.HIGH and pressed_button is False:#down
+                pressed_button = True
+                button_last_pressed = time.time()
                 light_list[y_coordinaat][x_coordinaat] = saved_value
                 y_coordinaat += 1
                 if(y_coordinaat == 8):
                     y_coordinaat = 0
                 load_display(light_list, device)
                 saved_value = light_list[y_coordinaat][x_coordinaat]
-                time.sleep(0.2)
+                # time.sleep(0.2)
             
             if (fout_controle(light_list)):
                 break
@@ -205,16 +238,16 @@ def main():
     except KeyboardInterrupt:
         device.clear()
         tm.show("    ")
-        print(time_list)
-        
-    tm.show("    ")
-    for i in range(256):
-        for halfstep in range(4):
-            for pin in range(4):
-                GPIO.output(control_pins[pin], halfstep_seq[halfstep][pin])
-            time.sleep(0.005)
-    for i in range(5):
-        tm.scroll("YOU WON", delay=250)
+        # print(time_list)
+    else:
+        tm.show("    ")
+        for i in range(178):
+            for halfstep in range(4):
+                for pin in range(4):
+                    GPIO.output(control_pins[pin], halfstep_seq[halfstep][pin])
+                time.sleep(0.005)
+        for i in range(5):
+            tm.scroll("YOU WON", delay=250)
         
 GPIO.cleanup()
 
