@@ -107,6 +107,11 @@ def create_random_list():
         light_list[x] = change_list
     return test_list
 
+def create_text(locations: list, text_list: list) -> str:
+    text = ''
+    for i in locations:
+        text += text_list[i]
+    return text
 
 def main():
     Display = tm1637.TM1637(23,24)
@@ -129,7 +134,7 @@ def main():
     x_coordinaat = 0
     y_coordinaat = 0
     flits_time = 0.4
-    
+    button_sleep = 0.3
     light_list = create_random_list()
     flits_original_state = light_list[x_coordinaat][y_coordinaat]
     device = init_hardware()
@@ -139,8 +144,37 @@ def main():
     old_time = time.time()
     old_timer = int(time.time())
     saved_value = light_list[y_coordinaat][x_coordinaat]
+    start_text = "press select to start ".upper()
+    start_text = list(start_text)
     try:
+        delay = 0.5
+        locations = [0,1,2,3]
+        location_1 = 0
+        location_2 = 1
+        location_3 = 2
+        location_4 = 3
+        start_timer = time.time()
+        tm.show(create_text(locations, start_text))
         while True:
+            start_timer_delay = start_timer + delay
+            if start_timer_delay < time.time():
+                start_timer = time.time()
+                for i in range(len(locations)):
+                    locations[i] += 1
+                # print("test")
+                # location_1 += 1
+                # location_2 += 1
+                # location_3 += 1
+                # location_4 += 1
+                for i in range(len(locations)):
+                    if locations[i] >= len(start_text):
+                        locations[i] = 0
+                tm.show(create_text(locations, start_text))
+                # if last_locatoion >= len(start_text):
+                #     print(len(start_text))
+                #     last_locatoion = 0
+                # if first_location > len(start_text):
+                #     first_location = 0
             if GPIO.input(16) == GPIO.HIGH:#select
                 tm.show("WAIT")
                 time.sleep(0.2)
@@ -173,48 +207,52 @@ def main():
             if now >= next_now:
                 next_now = time.time() + flits_time
                 flits(light_list, y_coordinaat, x_coordinaat, device)
-            if GPIO.input(19) == GPIO.HIGH:#left
+            if GPIO.input(20) == GPIO.HIGH:#left
+                print("19")
                 light_list[y_coordinaat][x_coordinaat] = saved_value
                 x_coordinaat -= 1
                 if(x_coordinaat == -1):
                     x_coordinaat = 7
                 load_display(light_list, device)
                 saved_value = light_list[y_coordinaat][x_coordinaat]
-                time.sleep(0.2)
+                time.sleep(button_sleep)
                 
-            if GPIO.input(26) == GPIO.HIGH:#right
+            if GPIO.input(19) == GPIO.HIGH:#right
+                print("20")
                 light_list[y_coordinaat][x_coordinaat] = saved_value
                 x_coordinaat += 1
                 if(x_coordinaat == 8):
                     x_coordinaat = 0
                 load_display(light_list, device)
                 saved_value = light_list[y_coordinaat][x_coordinaat]
-                time.sleep(0.2)
+                time.sleep(button_sleep)
                 
             if GPIO.input(16) == GPIO.HIGH:#select
                 light_list[y_coordinaat][x_coordinaat] = saved_value
                 light_list = toggle_lights(light_list, y_coordinaat, x_coordinaat)
                 load_display(light_list, device)
                 saved_value = light_list[y_coordinaat][x_coordinaat]
-                time.sleep(0.2)
+                time.sleep(button_sleep)
                 
-            if GPIO.input(20) == GPIO.HIGH:#up
+            if GPIO.input(21) == GPIO.HIGH:#left
+                print("20")
                 light_list[y_coordinaat][x_coordinaat] = saved_value
                 y_coordinaat -= 1
                 if(y_coordinaat == -1):
                     y_coordinaat = 7
                 load_display(light_list, device)
                 saved_value = light_list[y_coordinaat][x_coordinaat]
-                time.sleep(0.2)
+                time.sleep(button_sleep)
                 
-            if GPIO.input(21) == GPIO.HIGH:#down
+            if GPIO.input(26) == GPIO.HIGH:#down
+                print("21")
                 light_list[y_coordinaat][x_coordinaat] = saved_value
                 y_coordinaat += 1
                 if(y_coordinaat == 8):
                     y_coordinaat = 0
                 load_display(light_list, device)
                 saved_value = light_list[y_coordinaat][x_coordinaat]
-                time.sleep(0.2)
+                time.sleep(button_sleep)
             
             if (fout_controle(light_list)):
                 break
@@ -231,6 +269,7 @@ def main():
                 time.sleep(0.005)
     else:
         tm.show("    ")
+        tm.show("WIN")
         for i in range(178):
             for halfstep in range(4):
                 for pin in range(4):
