@@ -7,6 +7,12 @@ from luma.led_matrix.device import max7219
 import RPi.GPIO as GPIO # Import Raspberry Pi GPIO library
 import time
 import tm1637
+import csv
+import argparse
+
+argparser = argparse.ArgumentParser()
+argparser.add_argument("-d","--debug", action='store_true')
+args = argparser.parse_args()
 
 def fout_controle(light_list):
     check_total = 0;
@@ -105,7 +111,10 @@ def create_random_list():
         change_list[random.randint(0, 7)] = True
         change_list[random.randint(0, 7)] = True
         light_list[x] = change_list
-    return test_list
+    if args.debug:
+        return test_list
+    else:
+        return light_list
 
 def create_text(locations: list, text_list: list) -> str:
     text = ''
@@ -114,6 +123,7 @@ def create_text(locations: list, text_list: list) -> str:
     return text
 
 def main():
+    device = init_hardware()
     Display = tm1637.TM1637(23,24)
     tm = tm1637.TM1637(clk=23, dio=24)
     control_pins = [4,17,27,22]
@@ -127,156 +137,194 @@ def main():
         [0,0,1,0],
         [0,1,0,0],
         [1,0,0,0]]
-    # tm.scroll("TEAM 12 IS DE BESTE", delay=250)
-    minutes = 0
-    seconds = 0
-    # tm.numbers(minutes,seconds)
-    x_coordinaat = 0
-    y_coordinaat = 0
     flits_time = 0.4
     button_sleep = 0.3
-    light_list = create_random_list()
-    flits_original_state = light_list[x_coordinaat][y_coordinaat]
-    device = init_hardware()
-    load_display(light_list, device)
-    time_list = []
-    next_now = time.time() + flits_time
-    old_time = time.time()
-    old_timer = int(time.time())
-    saved_value = light_list[y_coordinaat][x_coordinaat]
-    start_text = "press select to start ".upper()
-    start_text = list(start_text)
-    try:
-        delay = 0.5
-        locations = [0,1,2,3]
-        location_1 = 0
-        location_2 = 1
-        location_3 = 2
-        location_4 = 3
-        start_timer = time.time()
-        tm.show(create_text(locations, start_text))
-        while True:
-            start_timer_delay = start_timer + delay
-            if start_timer_delay < time.time():
-                start_timer = time.time()
-                for i in range(len(locations)):
-                    locations[i] += 1
-                # print("test")
-                # location_1 += 1
-                # location_2 += 1
-                # location_3 += 1
-                # location_4 += 1
-                for i in range(len(locations)):
-                    if locations[i] >= len(start_text):
-                        locations[i] = 0
-                tm.show(create_text(locations, start_text))
-                # if last_locatoion >= len(start_text):
-                #     print(len(start_text))
-                #     last_locatoion = 0
-                # if first_location > len(start_text):
-                #     first_location = 0
-            if GPIO.input(16) == GPIO.HIGH:#select
-                tm.show("WAIT")
-                time.sleep(0.2)
-                break
-        for i in range(178):
-            for halfstep in range(4):
-                for pin in range(4):
-                    GPIO.output(control_pins[pin], backwards_seq[halfstep][pin])
-                time.sleep(0.005)
-        while True:
-            # print(int(time.time()))
-            now = time.time()
-            timer = int(time.time())
-            # print(f'Variable timer: {timer}, Type: {type(timer)}')
-            # print(f'Variable old_timer: {old_timer}, Type: {type(old_timer)}')
-            if old_timer < timer:
-                # print("test")
-                time_list.append(time.time()-old_timer)
-                old_timer = int(time.time())
+    # tm.scroll("TEAM 12 IS DE BESTE", delay=250)
+    while True:
+        amount_of_presses = 0
+        amount_of_button_presses = 0
+        minutes = 0
+        seconds = 0
+        # tm.numbers(minutes,seconds)
+        x_coordinaat = 0
+        y_coordinaat = 0
+        light_list = create_random_list()
+        flits_original_state = light_list[x_coordinaat][y_coordinaat]
+        load_display(light_list, device)
+        time_list = []
+        next_now = time.time() + flits_time
+        old_time = time.time()
+        old_timer = int(time.time())
+        saved_value = light_list[y_coordinaat][x_coordinaat]
+        start_text = "press select to start ".upper()
+        start_text = list(start_text)
+        try:
+            delay = 0.5
+            locations = [0,1,2,3]
+            location_1 = 0
+            location_2 = 1
+            location_3 = 2
+            location_4 = 3
+            start_timer = time.time()
+            tm.show(create_text(locations, start_text))
+            while True:
+                start_timer_delay = start_timer + delay
+                if start_timer_delay < time.time():
+                    start_timer = time.time()
+                    for i in range(len(locations)):
+                        locations[i] += 1
+                    # print("test")
+                    # location_1 += 1
+                    # location_2 += 1
+                    # location_3 += 1
+                    # location_4 += 1
+                    for i in range(len(locations)):
+                        if locations[i] >= len(start_text):
+                            locations[i] = 0
+                    tm.show(create_text(locations, start_text))
+                    # if last_locatoion >= len(start_text):
+                    #     print(len(start_text))
+                    #     last_locatoion = 0
+                    # if first_location > len(start_text):
+                    #     first_location = 0
+                if GPIO.input(16) == GPIO.HIGH:#select
+                    tm.show("WAIT")
+                    time.sleep(0.2)
+                    break
+            for i in range(89):
+                for halfstep in range(4):
+                    for pin in range(4):
+                        GPIO.output(control_pins[pin], backwards_seq[halfstep][pin])
+                    time.sleep(0.005)
+            while True:
+                # print(int(time.time()))
+                now = time.time()
+                timer = int(time.time())
                 # print(f'Variable timer: {timer}, Type: {type(timer)}')
                 # print(f'Variable old_timer: {old_timer}, Type: {type(old_timer)}')
-                seconds += 1
-                if seconds > 59:
-                    seconds = 0
-                    minutes += 1
-                if minutes == 0 and seconds == 0:
-                    print("0")
-                tm.numbers(minutes,seconds)
+                if old_timer < timer:
+                    # print("test")
+                    time_list.append(time.time()-old_timer)
+                    old_timer = int(time.time())
+                    # print(f'Variable timer: {timer}, Type: {type(timer)}')
+                    # print(f'Variable old_timer: {old_timer}, Type: {type(old_timer)}')
+                    seconds += 1
+                    if seconds > 59:
+                        seconds = 0
+                        minutes += 1
+                    if minutes == 0 and seconds == 0:
+                        print("0")
+                    tm.numbers(minutes,seconds)
+                    
+                if now >= next_now:
+                    next_now = time.time() + flits_time
+                    flits(light_list, y_coordinaat, x_coordinaat, device)
+                if GPIO.input(20) == GPIO.HIGH:#left
+                    # print("19")
+                    light_list[y_coordinaat][x_coordinaat] = saved_value
+                    x_coordinaat -= 1
+                    if(x_coordinaat == -1):
+                        x_coordinaat = 7
+                    load_display(light_list, device)
+                    saved_value = light_list[y_coordinaat][x_coordinaat]
+                    time.sleep(button_sleep)
+                    
+                if GPIO.input(19) == GPIO.HIGH:#right
+                    # print("20")
+                    light_list[y_coordinaat][x_coordinaat] = saved_value
+                    x_coordinaat += 1
+                    if(x_coordinaat == 8):
+                        x_coordinaat = 0
+                    load_display(light_list, device)
+                    saved_value = light_list[y_coordinaat][x_coordinaat]
+                    time.sleep(button_sleep)
+                    
+                if GPIO.input(16) == GPIO.HIGH:#select
+                    amount_of_presses += 1
+                    light_list[y_coordinaat][x_coordinaat] = saved_value
+                    light_list = toggle_lights(light_list, y_coordinaat, x_coordinaat)
+                    load_display(light_list, device)
+                    saved_value = light_list[y_coordinaat][x_coordinaat]
+                    time.sleep(button_sleep)
+                    
+                if GPIO.input(21) == GPIO.HIGH:#left
+                    # print("20")
+                    light_list[y_coordinaat][x_coordinaat] = saved_value
+                    y_coordinaat -= 1
+                    if(y_coordinaat == -1):
+                        y_coordinaat = 7
+                    load_display(light_list, device)
+                    saved_value = light_list[y_coordinaat][x_coordinaat]
+                    time.sleep(button_sleep)
+                    
+                if GPIO.input(26) == GPIO.HIGH:#down
+                    # print("21")
+                    light_list[y_coordinaat][x_coordinaat] = saved_value
+                    y_coordinaat += 1
+                    if(y_coordinaat == 8):
+                        y_coordinaat = 0
+                    load_display(light_list, device)
+                    saved_value = light_list[y_coordinaat][x_coordinaat]
+                    time.sleep(button_sleep)
                 
-            if now >= next_now:
-                next_now = time.time() + flits_time
-                flits(light_list, y_coordinaat, x_coordinaat, device)
-            if GPIO.input(20) == GPIO.HIGH:#left
-                print("19")
-                light_list[y_coordinaat][x_coordinaat] = saved_value
-                x_coordinaat -= 1
-                if(x_coordinaat == -1):
-                    x_coordinaat = 7
-                load_display(light_list, device)
-                saved_value = light_list[y_coordinaat][x_coordinaat]
-                time.sleep(button_sleep)
+                if (fout_controle(light_list)):
+                    break
+                # old_timer = int(time.time())
                 
-            if GPIO.input(19) == GPIO.HIGH:#right
-                print("20")
-                light_list[y_coordinaat][x_coordinaat] = saved_value
-                x_coordinaat += 1
-                if(x_coordinaat == 8):
-                    x_coordinaat = 0
-                load_display(light_list, device)
-                saved_value = light_list[y_coordinaat][x_coordinaat]
-                time.sleep(button_sleep)
-                
-            if GPIO.input(16) == GPIO.HIGH:#select
-                light_list[y_coordinaat][x_coordinaat] = saved_value
-                light_list = toggle_lights(light_list, y_coordinaat, x_coordinaat)
-                load_display(light_list, device)
-                saved_value = light_list[y_coordinaat][x_coordinaat]
-                time.sleep(button_sleep)
-                
-            if GPIO.input(21) == GPIO.HIGH:#left
-                print("20")
-                light_list[y_coordinaat][x_coordinaat] = saved_value
-                y_coordinaat -= 1
-                if(y_coordinaat == -1):
-                    y_coordinaat = 7
-                load_display(light_list, device)
-                saved_value = light_list[y_coordinaat][x_coordinaat]
-                time.sleep(button_sleep)
-                
-            if GPIO.input(26) == GPIO.HIGH:#down
-                print("21")
-                light_list[y_coordinaat][x_coordinaat] = saved_value
-                y_coordinaat += 1
-                if(y_coordinaat == 8):
-                    y_coordinaat = 0
-                load_display(light_list, device)
-                saved_value = light_list[y_coordinaat][x_coordinaat]
-                time.sleep(button_sleep)
-            
-            if (fout_controle(light_list)):
-                break
-            # old_timer = int(time.time())
-            
-    except KeyboardInterrupt:
-        device.clear()
-        tm.show("    ")
-        # print(time_list)
-        for i in range(178):
-            for halfstep in range(4):
-                for pin in range(4):
-                    GPIO.output(control_pins[pin], halfstep_seq[halfstep][pin])
-                time.sleep(0.005)
-    else:
-        tm.show("    ")
-        tm.show("WIN")
-        for i in range(178):
-            for halfstep in range(4):
-                for pin in range(4):
-                    GPIO.output(control_pins[pin], halfstep_seq[halfstep][pin])
-                time.sleep(0.005)
-        for i in range(5):
+        except KeyboardInterrupt:
+            device.clear()
+            tm.show("    ")
+            # print(time_list)
+            for i in range(89):
+                for halfstep in range(4):
+                    for pin in range(4):
+                        GPIO.output(control_pins[pin], halfstep_seq[halfstep][pin])
+                    time.sleep(0.005)
+        else:
+            tm.show("    ")
+            tm.show("WIN")
+            for i in range(89):
+                for halfstep in range(4):
+                    for pin in range(4):
+                        GPIO.output(control_pins[pin], halfstep_seq[halfstep][pin])
+                    time.sleep(0.005)
+            # for i in range(2):
             tm.scroll("YOU WON", delay=250)
+            start_text = "SAVE SCORE ".upper()
+            start_text = list(start_text)
+            delay = 0.5
+            locations = [0,1,2,3]
+            start_timer = time.time()
+            tm.show(create_text(locations, start_text))
+            while True:
+                start_timer_delay = start_timer + delay
+                if start_timer_delay < time.time():
+                    start_timer = time.time()
+                    for i in range(len(locations)):
+                        locations[i] += 1
+                    # print("test")
+                    # location_1 += 1
+                    # location_2 += 1
+                    # location_3 += 1
+                    # location_4 += 1
+                    for i in range(len(locations)):
+                        if locations[i] >= len(start_text):
+                            locations[i] = 0
+                    tm.show(create_text(locations, start_text))
+                    # if last_locatoion >= len(start_text):
+                    #     print(len(start_text))
+                    #     last_locatoion = 0
+                    # if first_location > len(start_text):
+                    #     first_location = 0
+                if GPIO.input(16) == GPIO.HIGH:#select
+                    tm.show("WAIT")
+                    with open("scores.csv", "a", encoding="utf-8") as file:
+                        writer = csv.writer(file)
+                        writer.writerow([minutes,seconds,amount_of_presses])
+                    time.sleep(0.2)
+                    break
+                elif GPIO.input(20) == GPIO.HIGH or GPIO.input(19) == GPIO.HIGH or GPIO.input(21) == GPIO.HIGH or GPIO.input(26) == GPIO.HIGH:
+                    break
         
 GPIO.cleanup()
 
