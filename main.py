@@ -15,7 +15,7 @@ argparser.add_argument("-d","--debug", action='store_true')
 args = argparser.parse_args()
 
 def fout_controle(light_list):
-    check_total = 0;
+    check_total = 0
     for x in range(len(light_list)):
         check_list = light_list[x]
         for y in range(len(light_list)):
