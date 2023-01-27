@@ -21,7 +21,7 @@ def fout_controle(light_list):
         for y in range(len(light_list)):
             if check_list[y]:
                 check_total += 1
-    if check_total == 64:
+    if check_total == 64 or check_total == 0:
         return True
     else:
         return False
@@ -81,7 +81,14 @@ def flits(flits_list, y_coordinaat, x_coordinaat, device):
     load_display(flits_list, device)
 
     
-
+def create_solver_string(light_list):
+    solver_str = ""
+    for x in range(len(light_list)):
+        solver_str_x = ""
+        for y in range(len(light_list)):
+            solver_str_x += "0" if light_list[y][x] else "1"
+        solver_str += solver_str_x[::-1]
+    print(solver_str[::-1],end="\n\n")
 
 
 def create_random_list():
@@ -113,6 +120,7 @@ def create_random_list():
     if args.debug:
         return test_list
     else:
+        create_solver_string(light_list)
         return light_list
 
 def create_text(locations: list, text_list: list) -> str:
@@ -219,12 +227,13 @@ def main():
                     saved_value = light_list[y_coordinaat][x_coordinaat]
                     time.sleep(button_sleep)
                     
-                if GPIO.input(16) == GPIO.HIGH:#select
+                if GPIO.input(16) == GPIO.HIGH:#select       
                     amount_of_presses += 1
                     light_list[y_coordinaat][x_coordinaat] = saved_value
                     light_list = toggle_lights(light_list, y_coordinaat, x_coordinaat)
                     load_display(light_list, device)
                     saved_value = light_list[y_coordinaat][x_coordinaat]
+                    create_solver_string(light_list)
                     time.sleep(button_sleep)
                     
                 if GPIO.input(21) == GPIO.HIGH:#left
